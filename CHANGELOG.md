@@ -6,13 +6,41 @@ Starting with version 5, the Facebook PHP SDK follows [SemVer](http://semver.org
 ## 6.x
 
 - 6.0.0 (Sometime in 2017)
-  - Bumped PHP version requirement to 5.6 (#607)
+  - Bumped minimum PHP version requirement to 5.6 (#607, #647)
+  - Made the `default_graph_version` option required (#643)
   - Replace custom CSPRNG implementation with `paragonie/random_compat` (#644)
+  - Removed the built-in autoloader in favor of composer's autoloader (#646)
+  - Big integers in signed requests get decoded as `string` instead of `float` (#699)
+  - We use an HTTP client abstraction called HTTPlug to give the user more control over *how* to send PSR7 messages. See updated installation instructions. 
+  - Removed option `http_client_handler`
+  - Added option `http_client` which should be an object implementing `\Http\Client\HttpClient`
+  - Removed functions `FacebookClient::setHttpClientHandler()` and `FacebookClient::getHttpClientHandler()` in favor for `FacebookClient::getHttpClient()` and `FacebookClient::setHttpClient()`.
+  - Removed classes `GraphObject`, `GraphList` and `GraphObjectFactory`
+  - Removed functions `AccessTokenMetadata::getProperty`, `GraphNode::getProperty`, `GraphEdge::getProperty`
+  - Removed functions `GraphNode::getPropertyNames`, `GraphEdge::getPropertyNames`
+  - Removed functions `GraphNode::getPropertyNames`, `GraphEdge::getPropertyNames`
+  - Removed functions `Response::getGraphObject`, `Response::getGraphList`
+  - Rename function `GraphNode::getObjectMap` to `GraphNode::getNodeMap`
 
 ## 5.x
 
 Version 5 of the Facebook PHP SDK is a complete refactor of version 4. It comes loaded with lots of new features and a friendlier API.
 
+- 5.6.1 (2017-08-16)
+  - Fixed doc block syntax that interfered with Doctrine (#844)
+- 5.6.0 (2017-07-23)
+  - Bump Graph API version to v2.10 (#829)
+- 5.5.0 (2017-04-20)
+  - Added support for batch options (#713)
+  - Bump Graph API version to v2.9.
+- 5.4.4 (2017-01-19)
+  - Added the `application/octet-stream` MIME type for SRT files (#734)
+- 5.4.3 (2016-12-30)
+  - Fixed a bug that would throw a type error in `GraphEdge` in some cases (#715)
+- 5.4.2 (2016-11-15)
+  - Added check for [PHP 7 CSPRNG](http://php.net/manual/en/function.random-bytes.php) first to keep mcrypt deprecation messages from appearing in PHP 7.1 (#692)
+- 5.4.1 (2016-10-18)
+  - Fixed a bug that was not properly parsing response headers when they contained the colon `:` character. (#679)
 - 5.4.0 (2016-10-12)
   - Bump Graph API version to v2.8.
   - Auto-cast `cover` field to `GraphCoverPhoto` and `picture` field to `GraphPicture` in `GraphPage`. (#655)

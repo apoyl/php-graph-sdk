@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright 2016 Facebook, Inc.
+ * Copyright 2017 Facebook, Inc.
  *
  * You are hereby granted a non-exclusive, worldwide, royalty-free license to
  * use, copy, modify, and distribute this software in source code or binary
@@ -19,15 +19,17 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
  */
 namespace Facebook\Tests\Authentication;
 
 use Facebook\Facebook;
-use Facebook\FacebookApp;
+use Facebook\Application;
 use Facebook\Authentication\OAuth2Client;
+use Facebook\Authentication\AccessTokenMetadata;
+use Facebook\Authentication\AccessToken;
+use PHPUnit\Framework\TestCase;
 
-class OAuth2ClientTest extends \PHPUnit_Framework_TestCase
+class OAuth2ClientTest extends TestCase
 {
 
     /**
@@ -36,7 +38,7 @@ class OAuth2ClientTest extends \PHPUnit_Framework_TestCase
     const TESTING_GRAPH_VERSION = 'v1337';
 
     /**
-     * @var FooFacebookClientForOAuth2Test
+     * @var FooClientForOAuth2Test
      */
     protected $client;
 
@@ -47,8 +49,8 @@ class OAuth2ClientTest extends \PHPUnit_Framework_TestCase
 
     protected function setUp()
     {
-        $app = new FacebookApp('123', 'foo_secret');
-        $this->client = new FooFacebookClientForOAuth2Test();
+        $app = new Application('123', 'foo_secret');
+        $this->client = new FooClientForOAuth2Test();
         $this->oauth = new OAuth2Client($app, $this->client, static::TESTING_GRAPH_VERSION);
     }
 
@@ -58,7 +60,7 @@ class OAuth2ClientTest extends \PHPUnit_Framework_TestCase
 
         $metadata = $this->oauth->debugToken('baz_token');
 
-        $this->assertInstanceOf('Facebook\Authentication\AccessTokenMetadata', $metadata);
+        $this->assertInstanceOf(AccessTokenMetadata::class, $metadata);
         $this->assertEquals('444', $metadata->getUserId());
 
         $expectedParams = [
@@ -82,7 +84,7 @@ class OAuth2ClientTest extends \PHPUnit_Framework_TestCase
         $this->assertContains('*', $authUrl);
 
         $expectedUrl = 'https://www.facebook.com/' . static::TESTING_GRAPH_VERSION . '/dialog/oauth?';
-        $this->assertTrue(strpos($authUrl, $expectedUrl) === 0, 'Unexpected base authorization URL returned from getAuthorizationUrl().');
+        $this->assertStringStartsWith($expectedUrl, $authUrl, 'Unexpected base authorization URL returned from getAuthorizationUrl().');
 
         $params = [
             'client_id' => '123',
@@ -103,7 +105,7 @@ class OAuth2ClientTest extends \PHPUnit_Framework_TestCase
 
         $accessToken = $this->oauth->getAccessTokenFromCode('bar_code', 'foo_uri');
 
-        $this->assertInstanceOf('Facebook\Authentication\AccessToken', $accessToken);
+        $this->assertInstanceOf(AccessToken::class, $accessToken);
         $this->assertEquals('my_access_token', $accessToken->getValue());
 
         $expectedParams = [

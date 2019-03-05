@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright 2016 Facebook, Inc.
+ * Copyright 2017 Facebook, Inc.
  *
  * You are hereby granted a non-exclusive, worldwide, royalty-free license to
  * use, copy, modify, and distribute this software in source code or binary
@@ -19,25 +19,25 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
  */
 namespace Facebook\Tests\PersistentData;
 
-use Facebook\PersistentData\FacebookSessionPersistentDataHandler;
+use Facebook\PersistentData\SessionPersistentDataHandler;
+use PHPUnit\Framework\TestCase;
 
-class FacebookSessionPersistentDataHandlerTest extends \PHPUnit_Framework_TestCase
+class SessionPersistentDataHandlerTest extends TestCase
 {
     /**
-     * @expectedException \Facebook\Exceptions\FacebookSDKException
+     * @expectedException \Facebook\Exception\SDKException
      */
     public function testInactiveSessionsWillThrow()
     {
-        new FacebookSessionPersistentDataHandler();
+        new SessionPersistentDataHandler();
     }
 
     public function testCanSetAValue()
     {
-        $handler = new FacebookSessionPersistentDataHandler($enableSessionCheck = false);
+        $handler = new SessionPersistentDataHandler($enableSessionCheck = false);
         $handler->set('foo', 'bar');
 
         $this->assertEquals('bar', $_SESSION['FBRLH_foo']);
@@ -46,7 +46,7 @@ class FacebookSessionPersistentDataHandlerTest extends \PHPUnit_Framework_TestCa
     public function testCanGetAValue()
     {
         $_SESSION['FBRLH_faz'] = 'baz';
-        $handler = new FacebookSessionPersistentDataHandler($enableSessionCheck = false);
+        $handler = new SessionPersistentDataHandler($enableSessionCheck = false);
         $value = $handler->get('faz');
 
         $this->assertEquals('baz', $value);
@@ -54,7 +54,7 @@ class FacebookSessionPersistentDataHandlerTest extends \PHPUnit_Framework_TestCa
 
     public function testGettingAValueThatDoesntExistWillReturnNull()
     {
-        $handler = new FacebookSessionPersistentDataHandler($enableSessionCheck = false);
+        $handler = new SessionPersistentDataHandler($enableSessionCheck = false);
         $value = $handler->get('does_not_exist');
 
         $this->assertNull($value);

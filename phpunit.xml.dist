@@ -5,7 +5,8 @@
         convertNoticesToExceptions="true"
         convertWarningsToExceptions="true"
         stopOnFailure="false"
-        bootstrap="tests/bootstrap.php">
+        bootstrap="tests/bootstrap.php"
+        verbose="true">
     <testsuites>
         <testsuite name="Facebook PHP SDK Test Suite">
             <directory>./tests</directory>
@@ -13,10 +14,7 @@
     </testsuites>
     <filter>
         <whitelist>
-            <directory suffix=".php">./src/Facebook</directory>
+            <directory suffix=".php">./src</directory>
         </whitelist>
     </filter>
-    <listeners>
-        <listener class="\Mockery\Adapter\Phpunit\TestListener"/>
-    </listeners>
 </phpunit>

@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright 2016 Facebook, Inc.
+ * Copyright 2017 Facebook, Inc.
  *
  * You are hereby granted a non-exclusive, worldwide, royalty-free license to
  * use, copy, modify, and distribute this software in source code or binary
@@ -19,15 +19,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
  */
 namespace Facebook\Tests\Authentication;
 
 use Facebook\Authentication\AccessTokenMetadata;
+use PHPUnit\Framework\TestCase;
 
-class AccessTokenMetadataTest extends \PHPUnit_Framework_TestCase
+class AccessTokenMetadataTest extends TestCase
 {
-
     protected $graphResponseData = [
         'data' => [
             'app_id' => '123',
@@ -58,8 +57,8 @@ class AccessTokenMetadataTest extends \PHPUnit_Framework_TestCase
         $expires = $metadata->getExpiresAt();
         $issuedAt = $metadata->getIssuedAt();
 
-        $this->assertInstanceOf('DateTime', $expires);
-        $this->assertInstanceOf('DateTime', $issuedAt);
+        $this->assertInstanceOf(\DateTime::class, $expires);
+        $this->assertInstanceOf(\DateTime::class, $issuedAt);
     }
 
     public function testAllTheGettersReturnTheProperValue()
@@ -82,7 +81,7 @@ class AccessTokenMetadataTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Facebook\Exceptions\FacebookSDKException
+     * @expectedException \Facebook\Exception\SDKException
      */
     public function testInvalidMetadataWillThrow()
     {
@@ -93,25 +92,31 @@ class AccessTokenMetadataTest extends \PHPUnit_Framework_TestCase
     {
         $metadata = new AccessTokenMetadata($this->graphResponseData);
         $metadata->validateAppId('123');
+
+        $this->assertTrue(true);
     }
 
     /**
-     * @expectedException \Facebook\Exceptions\FacebookSDKException
+     * @expectedException \Facebook\Exception\SDKException
      */
     public function testAnUnexpectedAppIdWillThrow()
     {
         $metadata = new AccessTokenMetadata($this->graphResponseData);
         $metadata->validateAppId('foo');
+
+        $this->assertTrue(true);
     }
 
     public function testAnExpectedUserIdWillNotThrow()
     {
         $metadata = new AccessTokenMetadata($this->graphResponseData);
         $metadata->validateUserId('1337');
+
+        $this->assertTrue(true);
     }
 
     /**
-     * @expectedException \Facebook\Exceptions\FacebookSDKException
+     * @expectedException \Facebook\Exception\SDKException
      */
     public function testAnUnexpectedUserIdWillThrow()
     {
@@ -124,10 +129,12 @@ class AccessTokenMetadataTest extends \PHPUnit_Framework_TestCase
         $this->graphResponseData['data']['expires_at'] = time() + 1000;
         $metadata = new AccessTokenMetadata($this->graphResponseData);
         $metadata->validateExpiration();
+
+        $this->assertTrue(true);
     }
 
     /**
-     * @expectedException \Facebook\Exceptions\FacebookSDKException
+     * @expectedException \Facebook\Exception\SDKException
      */
     public function testAnExpiredAccessTokenWillThrow()
     {

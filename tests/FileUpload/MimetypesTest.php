@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright 2016 Facebook, Inc.
+ * Copyright 2017 Facebook, Inc.
  *
  * You are hereby granted a non-exclusive, worldwide, royalty-free license to
  * use, copy, modify, and distribute this software in source code or binary
@@ -19,17 +19,17 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
  */
 namespace Facebook\Tests\FileUpload;
 
 use Facebook\FileUpload\Mimetypes;
+use PHPUnit\Framework\TestCase;
 
-class MimetypesTest extends \PHPUnit_Framework_TestCase
+class MimetypesTest extends TestCase
 {
 
     /**
-     * Taken from Guzzle
+     * Taken from Guzzle.
      *
      * @see https://github.com/guzzle/guzzle/blob/master/tests/MimetypesTest.php
      */

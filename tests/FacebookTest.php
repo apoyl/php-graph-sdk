@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright 2016 Facebook, Inc.
+ * Copyright 2017 Facebook, Inc.
  *
  * You are hereby granted a non-exclusive, worldwide, royalty-free license to
  * use, copy, modify, and distribute this software in source code or binary
@@ -19,30 +19,38 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
- *
  */
 namespace Facebook\Tests;
 
 use Facebook\Facebook;
-use Facebook\FacebookClient;
-use Facebook\FacebookRequest;
+use Facebook\Client;
+use Facebook\Request;
 use Facebook\Authentication\AccessToken;
-use Facebook\GraphNodes\GraphEdge;
+use Facebook\GraphNode\GraphEdge;
 use Facebook\Tests\Fixtures\FakeGraphApiForResumableUpload;
-use Facebook\Tests\Fixtures\FooBarPseudoRandomStringGenerator;
-use Facebook\Tests\Fixtures\FooClientInterface;
+use Facebook\Tests\Fixtures\FooHttpClientInterface;
 use Facebook\Tests\Fixtures\FooPersistentDataInterface;
 use Facebook\Tests\Fixtures\FooUrlDetectionInterface;
+use Facebook\HttpClients\CurlHttpClient;
+use Facebook\HttpClients\StreamHttpClient;
+use Facebook\HttpClients\GuzzleHttpClient;
+use Facebook\PersistentData\InMemoryPersistentDataHandler;
+use Facebook\Url\UrlDetectionHandler;
+use Facebook\Response;
+use Facebook\GraphNode\GraphUser;
+use PHPUnit\Framework\Error\Error;
+use PHPUnit\Framework\TestCase;
 
-class FacebookTest extends \PHPUnit_Framework_TestCase
+class Test extends TestCase
 {
     protected $config = [
         'app_id' => '1337',
         'app_secret' => 'foo_secret',
+        'default_graph_version' => 'v0.0',
     ];
 
     /**
-     * @expectedException \Facebook\Exceptions\FacebookSDKException
+     * @expectedException \Facebook\Exception\SDKException
      */
     public function testInstantiatingWithoutAppIdThrows()
     {
@@ -50,12 +58,13 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
         putenv(Facebook::APP_ID_ENV_NAME.'=');
         $config = [
             'app_secret' => 'foo_secret',
+            'default_graph_version' => 'v0.0',
         ];
         new Facebook($config);
     }
 
     /**
-     * @expectedException \Facebook\Exceptions\FacebookSDKException
+     * @expectedException \Facebook\Exception\SDKException
      */
     public function testInstantiatingWithoutAppSecretThrows()
     {
@@ -63,6 +72,7 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
         putenv(Facebook::APP_SECRET_ENV_NAME.'=');
         $config = [
             'app_id' => 'foo_id',
+            'default_graph_version' => 'v0.0',
         ];
         new Facebook($config);
     }
@@ -70,53 +80,36 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
     /**
      * @expectedException \InvalidArgumentException
      */
-    public function testSettingAnInvalidHttpClientHandlerThrows()
+    public function testInstantiatingWithoutDefaultGraphVersionThrows()
+    {
+        $config = [
+            'app_id' => 'foo_id',
+            'app_secret' => 'foo_secret',
+        ];
+        new Facebook($config);
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testSettingAnInvalidHttpClientTypeThrows()
     {
         $config = array_merge($this->config, [
-            'http_client_handler' => 'foo_handler',
+            'http_client' => 'foo_client',
         ]);
         new Facebook($config);
     }
 
-    public function testCurlHttpClientHandlerCanBeForced()
-    {
-        if (!extension_loaded('curl')) {
-            $this->markTestSkipped('cURL must be installed to test cURL client handler.');
-        }
-        $config = array_merge($this->config, [
-            'http_client_handler' => 'curl'
-        ]);
-        $fb = new Facebook($config);
-        $this->assertInstanceOf(
-            'Facebook\HttpClients\FacebookCurlHttpClient',
-            $fb->getClient()->getHttpClientHandler()
-        );
-    }
-
-    public function testStreamHttpClientHandlerCanBeForced()
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testSettingAnInvalidHttpClientClassThrows()
     {
         $config = array_merge($this->config, [
-            'http_client_handler' => 'stream'
+            'http_client' => new \stdClass(),
         ]);
-        $fb = new Facebook($config);
-        $this->assertInstanceOf(
-            'Facebook\HttpClients\FacebookStreamHttpClient',
-            $fb->getClient()->getHttpClientHandler()
-        );
+        new Facebook($config);
     }
-
-    public function testGuzzleHttpClientHandlerCanBeForced()
-    {
-        $config = array_merge($this->config, [
-            'http_client_handler' => 'guzzle'
-        ]);
-        $fb = new Facebook($config);
-        $this->assertInstanceOf(
-            'Facebook\HttpClients\FacebookGuzzleHttpClient',
-            $fb->getClient()->getHttpClientHandler()
-        );
-    }
-
     /**
      * @expectedException \InvalidArgumentException
      */
@@ -135,29 +128,26 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
         ]);
         $fb = new Facebook($config);
         $this->assertInstanceOf(
-            'Facebook\PersistentData\FacebookMemoryPersistentDataHandler',
+            InMemoryPersistentDataHandler::class,
             $fb->getRedirectLoginHelper()->getPersistentDataHandler()
         );
     }
 
+    /**
+     * @expectedException Error
+     */
     public function testSettingAnInvalidUrlHandlerThrows()
     {
-        $expectedException = (PHP_MAJOR_VERSION > 5 && class_exists('TypeError'))
-            ? 'TypeError'
-            : 'PHPUnit_Framework_Error';
-
-        $this->setExpectedException($expectedException);
-
         $config = array_merge($this->config, [
             'url_detection_handler' => 'foo_handler',
         ]);
         new Facebook($config);
     }
 
-    public function testTheUrlHandlerWillDefaultToTheFacebookImplementation()
+    public function testTheUrlHandlerWillDefaultToTheImplementation()
     {
         $fb = new Facebook($this->config);
-        $this->assertInstanceOf('Facebook\Url\FacebookUrlDetectionHandler', $fb->getUrlDetectionHandler());
+        $this->assertInstanceOf(UrlDetectionHandler::class, $fb->getUrlDetectionHandler());
     }
 
     public function testAnAccessTokenCanBeSetAsAString()
@@ -166,7 +156,7 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
         $fb->setDefaultAccessToken('foo_token');
         $accessToken = $fb->getDefaultAccessToken();
 
-        $this->assertInstanceOf('Facebook\Authentication\AccessToken', $accessToken);
+        $this->assertInstanceOf(AccessToken::class, $accessToken);
         $this->assertEquals('foo_token', (string)$accessToken);
     }
 
@@ -176,7 +166,7 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
         $fb->setDefaultAccessToken(new AccessToken('bar_token'));
         $accessToken = $fb->getDefaultAccessToken();
 
-        $this->assertInstanceOf('Facebook\Authentication\AccessToken', $accessToken);
+        $this->assertInstanceOf(AccessToken::class, $accessToken);
         $this->assertEquals('bar_token', (string)$accessToken);
     }
 
@@ -201,35 +191,57 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
         $fb = new Facebook($config);
 
         $request = $fb->request('FOO_VERB', '/foo');
-        $this->assertEquals('1337', $request->getApp()->getId());
-        $this->assertEquals('foo_secret', $request->getApp()->getSecret());
+        $this->assertEquals('1337', $request->getApplication()->getId());
+        $this->assertEquals('foo_secret', $request->getApplication()->getSecret());
         $this->assertEquals('foo_token', (string)$request->getAccessToken());
         $this->assertEquals('v1337', $request->getGraphVersion());
         $this->assertEquals(
-            FacebookClient::BASE_GRAPH_URL_BETA,
+            Client::BASE_GRAPH_URL_BETA,
             $fb->getClient()->getBaseGraphUrl()
         );
+    }
+
+    public function testCreatingANewBatchRequestWillDefaultToTheProperConfig()
+    {
+        $config = array_merge($this->config, [
+            'default_access_token' => 'foo_token',
+            'enable_beta_mode' => true,
+            'default_graph_version' => 'v1337',
+        ]);
+        $fb = new Facebook($config);
+
+        $batchRequest = $fb->newBatchRequest();
+        $this->assertEquals('1337', $batchRequest->getApplication()->getId());
+        $this->assertEquals('foo_secret', $batchRequest->getApplication()->getSecret());
+        $this->assertEquals('foo_token', (string)$batchRequest->getAccessToken());
+        $this->assertEquals('v1337', $batchRequest->getGraphVersion());
+        $this->assertEquals(
+            Client::BASE_GRAPH_URL_BETA,
+            $fb->getClient()->getBaseGraphUrl()
+        );
+        $this->assertInstanceOf('Facebook\BatchRequest', $batchRequest);
+        $this->assertCount(0, $batchRequest->getRequests());
     }
 
     public function testCanInjectCustomHandlers()
     {
         $config = array_merge($this->config, [
-            'http_client_handler' => new FooClientInterface(),
+            'http_client' => new FooHttpClientInterface(),
             'persistent_data_handler' => new FooPersistentDataInterface(),
             'url_detection_handler' => new FooUrlDetectionInterface(),
         ]);
         $fb = new Facebook($config);
 
         $this->assertInstanceOf(
-            'Facebook\Tests\Fixtures\FooClientInterface',
-            $fb->getClient()->getHttpClientHandler()
+            FooHttpClientInterface::class,
+            $fb->getClient()->getHttpClient()
         );
         $this->assertInstanceOf(
-            'Facebook\Tests\Fixtures\FooPersistentDataInterface',
+            FooPersistentDataInterface::class,
             $fb->getRedirectLoginHelper()->getPersistentDataHandler()
         );
         $this->assertInstanceOf(
-            'Facebook\Tests\Fixtures\FooUrlDetectionInterface',
+            FooUrlDetectionInterface::class,
             $fb->getRedirectLoginHelper()->getUrlDetectionHandler()
         );
     }
@@ -237,11 +249,11 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
     public function testPaginationReturnsProperResponse()
     {
         $config = array_merge($this->config, [
-            'http_client_handler' => new FooClientInterface(),
+            'http_client' => new FooHttpClientInterface(),
         ]);
         $fb = new Facebook($config);
 
-        $request = new FacebookRequest($fb->getApp(), 'foo_token', 'GET');
+        $request = new Request($fb->getApplication(), 'foo_token', 'GET');
         $graphEdge = new GraphEdge(
             $request,
             [],
@@ -256,23 +268,23 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
                 ]
             ],
             '/1337/photos',
-            '\Facebook\GraphNodes\GraphUser'
+            GraphUser::class
         );
 
         $nextPage = $fb->next($graphEdge);
-        $this->assertInstanceOf('Facebook\GraphNodes\GraphEdge', $nextPage);
-        $this->assertInstanceOf('Facebook\GraphNodes\GraphUser', $nextPage[0]);
-        $this->assertEquals('Foo', $nextPage[0]['name']);
+        $this->assertInstanceOf(GraphEdge::class, $nextPage);
+        $this->assertInstanceOf(GraphUser::class, $nextPage[0]);
+        $this->assertEquals('Foo', $nextPage[0]->getField('name'));
 
         $lastResponse = $fb->getLastResponse();
-        $this->assertInstanceOf('Facebook\FacebookResponse', $lastResponse);
+        $this->assertInstanceOf(Response::class, $lastResponse);
         $this->assertEquals(1337, $lastResponse->getHttpStatusCode());
     }
 
     public function testCanGetSuccessfulTransferWithMaxTries()
     {
         $config = array_merge($this->config, [
-          'http_client_handler' => new FakeGraphApiForResumableUpload(),
+          'http_client' => new FakeGraphApiForResumableUpload(),
         ]);
         $fb = new Facebook($config);
         $response = $fb->uploadVideo('me', __DIR__.'/foo.txt', [], 'foo-token', 3);
@@ -283,7 +295,7 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @expectedException \Facebook\Exceptions\FacebookResponseException
+     * @expectedException \Facebook\Exception\ResponseException
      */
     public function testMaxingOutRetriesWillThrow()
     {
@@ -291,7 +303,7 @@ class FacebookTest extends \PHPUnit_Framework_TestCase
         $client->failOnTransfer();
 
         $config = array_merge($this->config, [
-          'http_client_handler' => $client,
+          'http_client' => $client,
         ]);
         $fb = new Facebook($config);
         $fb->uploadVideo('4', __DIR__.'/foo.txt', [], 'foo-token', 3);
